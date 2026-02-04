@@ -89,7 +89,7 @@ st.markdown("---")
 # Global Dataset Configuration
 # =============================================================================
 
-st.markdown("## 📁 Global Dataset Configuration")
+st.markdown("## 📁 Dataset Configuration")
 st.markdown("Upload a dataset that will be used across all classification pages. Configure the output settings for saving results.")
 
 with st.container(border=True):
@@ -128,30 +128,43 @@ with st.container(border=True):
                 if not st.session_state.globalData['outputFileName']:
                     st.session_state.globalData['outputFileName'] = f"{base_name}_processed"
 
-                st.success(f"✅ Dataset loaded successfully: **{uploadedFile.name}**")
-
         except Exception as e:
             st.error(f"❌ Error loading file: {str(e)}")
 
-# Show dataset info and configuration if loaded
+    # Show dataset info and preview if loaded
+    if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData['dataset'] is not None:
+        dataset = st.session_state.globalData['dataset']
+
+        st.markdown("---")
+
+        # Dataset statistics
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("📊 Rows", f"{len(dataset):,}")
+        with col2:
+            st.metric("📋 Columns", len(dataset.columns))
+        with col3:
+            # Calculate dataset size in memory
+            size_bytes = dataset.memory_usage(deep=True).sum()
+            if size_bytes < 1024:
+                size_str = f"{size_bytes} B"
+            elif size_bytes < 1024**2:
+                size_str = f"{size_bytes/1024:.2f} KB"
+            elif size_bytes < 1024**3:
+                size_str = f"{size_bytes/(1024**2):.2f} MB"
+            else:
+                size_str = f"{size_bytes/(1024**3):.2f} GB"
+            st.metric("💾 File Size", size_str)
+
+        # Preview
+        st.markdown("**Dataset Preview (first 10 rows):**")
+        st.dataframe(dataset.head(10), use_container_width=True)
+
+
+# Show dataset configuration if loaded
 if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData['dataset'] is not None:
     dataset = st.session_state.globalData['dataset']
-
-    # Dataset statistics
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric("📊 Total Rows", f"{len(dataset):,}")
-    with col2:
-        st.metric("📋 Total Columns", len(dataset.columns))
-    with col3:
-        st.metric("📄 Source File", st.session_state.globalData['originalFileName'])
-
-    # Preview
-    st.markdown("**Dataset Preview (first 10 rows):**")
-    st.dataframe(dataset.head(10), use_container_width=True)
-
-    st.markdown("---")
 
     # Text Column Selection
     with st.container(border=True):
@@ -185,8 +198,6 @@ if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData[
                 st.warning("⚠️ Please select a text column to enable classification.")
         else:
             st.warning("⚠️ No text columns found in the dataset.")
-
-    st.markdown("---")
 
     # Output Configuration
     with st.container(border=True):
@@ -226,7 +237,7 @@ if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData[
         # Show full path preview
         if outputFileName and outputDirectory:
             full_path = os.path.join(outputDirectory, f"{outputFileName}.{outputFormat}")
-            st.info(f"📁 **Output path:** `{full_path}`")
+            st.info(f"� **Output path:** `{full_path}`")
 
         # Check if configuration is complete
         config_complete = (
@@ -239,9 +250,6 @@ if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData[
             st.success("✅ **Configuration complete!** You can now use the classifiers.")
         else:
             st.warning("⚠️ Complete all configuration fields to enable classifiers.")
-
-else:
-    st.info("📤 **Upload a dataset to get started.** The dataset will be shared across all classification pages.")
 
 # Footer
 st.markdown("---")

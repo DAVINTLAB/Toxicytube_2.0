@@ -19,11 +19,11 @@ def get_available_device():
         tuple: (device, device_name, device_type)
     """
     if torch.cuda.is_available():
-        return torch.device("cuda"), "🚀 GPU (CUDA)", "success"
+        return torch.device("cuda"), "🚀 GPU (CUDA)", "info"
     elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        return torch.device("mps"), "⚡ GPU (MPS - Apple Silicon)", "success"
+        return torch.device("mps"), "🚀 GPU (MPS - Apple Silicon)", "info"
     else:
-        return torch.device("cpu"), "🐌 CPU (Processamento Lento)", "warning"
+        return torch.device("cpu"), "🐌 CPU", "info"
 
 
 # =============================================================================
@@ -125,7 +125,7 @@ def unload_model(model=None, tokenizer=None):
     """
     if model is not None:
         del model
-    
+
     if tokenizer is not None:
         del tokenizer
 
@@ -171,18 +171,18 @@ def classify_single_text(text, model, tokenizer, max_length):
             prediction = torch.argmax(probabilities, dim=-1)
 
         return prediction.cpu().numpy()[0], probabilities.cpu().numpy()[0]
-    
+
     except RuntimeError as e:
         # If CUDA error, fallback to CPU
         if 'CUDA' in str(e) or 'cuda' in str(e):
             # Move model to CPU
             model.to(torch.device('cpu'))
             device = torch.device('cpu')
-            
+
             # Clear CUDA cache
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            
+
             # Retry on CPU
             inputs = tokenizer(
                 text,
@@ -245,7 +245,7 @@ def classify_texts(texts, model, tokenizer, max_length, batch_size=8, progress_c
 
             all_predictions.extend(predictions.cpu().numpy())
             all_probabilities.extend(probabilities.cpu().numpy())
-        
+
         except RuntimeError as e:
             # If CUDA error and not handled yet, fallback to CPU
             if ('CUDA' in str(e) or 'cuda' in str(e)) and not cuda_error_handled:
@@ -253,11 +253,11 @@ def classify_texts(texts, model, tokenizer, max_length, batch_size=8, progress_c
                 model.to(torch.device('cpu'))
                 device = torch.device('cpu')
                 cuda_error_handled = True
-                
+
                 # Clear CUDA cache
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-                
+
                 # Retry current batch on CPU
                 inputs = tokenizer(
                     batch_texts,
@@ -276,7 +276,7 @@ def classify_texts(texts, model, tokenizer, max_length, batch_size=8, progress_c
                 all_probabilities.extend(probabilities.cpu().numpy())
             else:
                 raise
-        
+
         # Update progress
         if progress_callback:
             current = min(i + batch_size, total_texts)
@@ -302,9 +302,9 @@ def calculate_text_lengths(texts, tokenizer, sample_size=100):
         dict: {'avg_length': float, 'max_length': int, 'min_length': int}
     """
     sample = texts[:sample_size] if sample_size else texts
-    
+
     text_lengths = [len(tokenizer.encode(text, add_special_tokens=True)) for text in sample]
-    
+
     return {
         'avg_length': sum(text_lengths) / len(text_lengths) if text_lengths else 0,
         'max_length': max(text_lengths) if text_lengths else 0,
@@ -331,7 +331,7 @@ def create_results_dataframe(original_df, text_column, predictions, probabilitie
         pd.DataFrame: DataFrame com resultados
     """
     import pandas as pd
-    
+
     results_df = original_df.copy()
 
     # Add probability columns for each label
@@ -357,11 +357,11 @@ def save_classification_results(results_df, output_path, output_format='csv'):
         dict: {'success': bool, 'path': str, 'error': str}
     """
     import os
-    
+
     try:
         # Create directory if needed
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
+
         # Save based on format
         if output_format == 'csv':
             results_df.to_csv(output_path, index=False, encoding='utf-8-sig')
@@ -374,12 +374,12 @@ def save_classification_results(results_df, output_path, output_format='csv'):
                 'success': False,
                 'error': f'Formato não suportado: {output_format}'
             }
-        
+
         return {
             'success': True,
             'path': output_path
         }
-    
+
     except Exception as e:
         return {
             'success': False,

@@ -22,9 +22,6 @@ def render_navigation(current_page):
         </style>
     """, unsafe_allow_html=True)
 
-    st.sidebar.title("📋 Navigation")
-    st.sidebar.markdown("---")
-
     # Navigation buttons
     if st.sidebar.button(
         "🏠 Home",
@@ -73,11 +70,11 @@ def render_navigation(current_page):
     ):
         if current_page != 'analysis':
             st.switch_page("pages/5_Classified_Data_Analysis.py")
-    
+
     # Show global dataset status in sidebar
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📁 Dataset Status")
-    
+
     if 'globalData' in st.session_state and st.session_state.globalData.get('datasetLoaded'):
         st.sidebar.success(f"✅ Loaded: {st.session_state.globalData.get('originalFileName', 'Unknown')}")
         st.sidebar.info(f"📊 {len(st.session_state.globalData.get('dataset', [])):,} rows")

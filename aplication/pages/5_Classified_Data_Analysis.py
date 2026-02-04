@@ -163,34 +163,59 @@ st.markdown("---")
 # =============================================================================
 
 with st.container(border=True):
-    st.markdown("### 📁 Global Dataset Preview")
-    
+    st.markdown("### 📁 Dataset Preview")
+
     if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData['dataset'] is not None:
         dataset = st.session_state.globalData['dataset']
         text_column = st.session_state.globalData['textColumn']
-        
+
+        # Custom CSS for smaller metrics
+        st.markdown("""
+            <style>
+            [data-testid="stMetricValue"] {
+                font-size: 20px;
+            }
+            [data-testid="stMetricLabel"] {
+                font-size: 14px;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         # Dataset statistics
-        col1, col2, col3, col4 = st.columns(4)
-        
+        col1, col2, col3, spacer, col4, col5 = st.columns([1, 1, 1, 0.5, 1.5, 1.5])
+
         with col1:
             st.metric("📊 Rows", f"{len(dataset):,}")
         with col2:
             st.metric("📋 Columns", len(dataset.columns))
         with col3:
-            st.metric("📝 Text Column", text_column if text_column else "Not selected")
+            # Calculate dataset size in memory
+            size_bytes = dataset.memory_usage(deep=True).sum()
+            if size_bytes < 1024:
+                size_str = f"{size_bytes} B"
+            elif size_bytes < 1024**2:
+                size_str = f"{size_bytes/1024:.2f} KB"
+            elif size_bytes < 1024**3:
+                size_str = f"{size_bytes/(1024**2):.2f} MB"
+            else:
+                size_str = f"{size_bytes/(1024**3):.2f} GB"
+            st.metric("💾 Size", size_str)
+
         with col4:
             st.metric("📄 Source", st.session_state.globalData['originalFileName'])
-        
+        with col5:
+            st.metric("📝 Text Column", text_column if text_column else "Not selected")
+
         # Preview
         st.markdown("**Dataset Preview (first 5 rows):**")
         st.dataframe(dataset.head(5), use_container_width=True)
-        
+
         # Show all columns
         st.markdown("**Available Columns:**")
         st.write(", ".join([f"`{col}`" for col in dataset.columns]))
     else:
         st.warning("⚠️ **No dataset loaded.** Please upload a dataset in the Home page first.")
-        st.info("👈 Go to **Home** to upload and configure your dataset.")
+        st.info("� Go to **Home** to upload and configure your dataset.")
 
 st.markdown("")
 
@@ -200,79 +225,79 @@ st.markdown("")
 
 if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData['dataset'] is not None:
     dataset = st.session_state.globalData['dataset']
-    
+
     with st.container(border=True):
         st.markdown("### ⚙️ Analysis Configuration")
         st.markdown("Select the columns to use for analysis.")
-        
+
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.markdown("**Label/Classification Column:**")
             label_columns = dataset.columns.tolist()
-            
+
             # Try to auto-detect label columns
             suggested_labels = [col for col in label_columns if any(
                 keyword in col.lower() for keyword in ['label', 'class', 'predict', 'classification', 'toxic', 'sentiment']
             )]
-            
+
             label_column = st.selectbox(
                 "Select the column containing classification labels:",
                 options=label_columns,
                 index=label_columns.index(suggested_labels[0]) if suggested_labels else 0,
                 help="This column should contain the classification results"
             )
-            
+
             if label_column:
                 st.session_state.analysisData['labelColumn'] = label_column
                 unique_values = dataset[label_column].unique()
-                st.info(f"📋 Found classes: {', '.join(map(str, unique_values[:10]))}{'...' if len(unique_values) > 10 else ''}")
-        
+                st.info(f"� Found classes: {', '.join(map(str, unique_values[:10]))}{'...' if len(unique_values) > 10 else ''}")
+
         with col2:
             st.markdown("**Date/Time Column (Optional):**")
-            
+
             # Try to auto-detect datetime columns
             datetime_columns = ['None'] + dataset.columns.tolist()
-            
+
             datetime_column = st.selectbox(
                 "Select the column containing date/time (optional for temporal analysis):",
                 options=datetime_columns,
                 index=0,
                 help="This column should contain date/time information"
             )
-            
+
             if datetime_column != 'None':
                 st.session_state.analysisData['datetimeColumn'] = datetime_column
                 sample_values = dataset[datetime_column].head(3).tolist()
-                st.info(f"📅 Sample values: {', '.join(map(str, sample_values))}")
+                st.info(f"� Sample values: {', '.join(map(str, sample_values))}")
             else:
                 st.session_state.analysisData['datetimeColumn'] = None
 
     st.markdown("")
-    
+
     # =============================================================================
     # Class Distribution Analysis
     # =============================================================================
-    
+
     if st.session_state.analysisData['labelColumn']:
         label_column = st.session_state.analysisData['labelColumn']
-        
+
         with st.container(border=True):
             st.markdown("### 📊 Class Distribution")
             st.markdown("Visualize the proportion of each class in the dataset.")
-            
+
             fig_pie, class_counts = create_class_distribution_chart(dataset, label_column)
-            
+
             if fig_pie is not None:
                 col_chart, col_stats = st.columns([3, 1])
-                
+
                 with col_chart:
                     st.plotly_chart(fig_pie, use_container_width=True)
-                
+
                 with col_stats:
                     st.markdown("**📊 Statistics:**")
                     total_samples = len(dataset)
-                    
+
                     for label, count in class_counts.items():
                         percentage = (count / total_samples) * 100
                         st.metric(
@@ -280,23 +305,23 @@ if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData[
                             value=f"{count:,}",
                             delta=f"{percentage:.1f}%"
                         )
-        
+
         st.markdown("")
-        
+
         # =============================================================================
         # Temporal Analysis (if datetime column selected)
         # =============================================================================
-        
+
         if st.session_state.analysisData['datetimeColumn']:
             datetime_column = st.session_state.analysisData['datetimeColumn']
-            
+
             with st.container(border=True):
                 st.markdown("### ⏰ Temporal Analysis")
                 st.markdown("Visualize how classes vary over time.")
-                
+
                 # Aggregation selector
                 col_agg, col_info = st.columns([2, 8])
-                
+
                 with col_agg:
                     aggregation = st.selectbox(
                         "Time aggregation:",
@@ -305,37 +330,37 @@ if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData[
                         help="How to group data over time"
                     )
                     st.session_state.analysisData['aggregation'] = aggregation
-                
+
                 # Process datetime and create chart
                 dataset_processed = parse_datetime_column(dataset.copy(), datetime_column)
-                
+
                 if dataset_processed is not None and len(dataset_processed) > 0:
                     with col_info:
                         min_date = dataset_processed[datetime_column].min()
                         max_date = dataset_processed[datetime_column].max()
                         date_range = max_date - min_date
-                        st.info(f"📅 Data period: {min_date.strftime('%Y-%m-%d %H:%M')} to {max_date.strftime('%Y-%m-%d %H:%M')} ({date_range.days} days)")
-                    
+                        st.info(f"� Data period: {min_date.strftime('%Y-%m-%d %H:%M')} to {max_date.strftime('%Y-%m-%d %H:%M')} ({date_range.days} days)")
+
                     fig_temporal, grouped_data = create_temporal_analysis_chart(
                         dataset_processed, datetime_column, label_column, aggregation
                     )
-                    
+
                     if fig_temporal is not None:
                         st.plotly_chart(fig_temporal, use_container_width=True)
                 else:
                     st.warning("⚠️ Could not process datetime column for temporal analysis.")
-        
+
         st.markdown("")
-        
+
         # =============================================================================
         # Detailed Statistics
         # =============================================================================
-        
+
         with st.container(border=True):
             st.markdown("### 📈 Detailed Statistics")
-            
+
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 st.markdown("**Class Distribution Table:**")
                 stats_df = pd.DataFrame({
@@ -344,7 +369,7 @@ if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData[
                     'Percentage': [f"{(c/len(dataset)*100):.2f}%" for c in class_counts.values]
                 })
                 st.dataframe(stats_df, use_container_width=True, hide_index=True)
-            
+
             with col2:
                 st.markdown("**Dataset Summary:**")
                 st.metric("Total Records", f"{len(dataset):,}")

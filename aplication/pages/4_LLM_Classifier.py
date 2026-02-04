@@ -59,21 +59,21 @@ def save_global_dataset():
     """Save the global dataset to the configured output path"""
     if st.session_state.globalData['dataset'] is None:
         return False, "No dataset loaded"
-    
+
     try:
         output_dir = st.session_state.globalData['outputDirectory']
         output_name = st.session_state.globalData['outputFileName']
         output_format = st.session_state.globalData['outputFormat']
-        
+
         # Create directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # Build full path
         full_path = os.path.join(output_dir, f"{output_name}.{output_format}")
-        
+
         # Save based on format
         df = st.session_state.globalData['dataset']
-        
+
         if output_format == 'csv':
             df.to_csv(full_path, index=False)
         elif output_format == 'xlsx':
@@ -82,7 +82,7 @@ def save_global_dataset():
             df.to_json(full_path, orient='records', indent=2)
         elif output_format == 'parquet':
             df.to_parquet(full_path, index=False)
-        
+
         return True, full_path
     except Exception as e:
         return False, str(e)
@@ -111,34 +111,59 @@ st.markdown("---")
 # =============================================================================
 
 with st.container(border=True):
-    st.markdown("### 📁 Global Dataset Preview")
-    
+    st.markdown("### 📁 Dataset Preview")
+
     if st.session_state.globalData['datasetLoaded'] and st.session_state.globalData['dataset'] is not None:
         dataset = st.session_state.globalData['dataset']
         text_column = st.session_state.globalData['textColumn']
-        
+
+        # Custom CSS for smaller metrics
+        st.markdown("""
+            <style>
+            [data-testid="stMetricValue"] {
+                font-size: 20px;
+            }
+            [data-testid="stMetricLabel"] {
+                font-size: 14px;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         # Dataset statistics
-        col1, col2, col3, col4 = st.columns(4)
-        
+        col1, col2, col3, spacer, col4, col5 = st.columns([1, 1, 1, 0.5, 1.5, 1.5])
+
         with col1:
             st.metric("📊 Rows", f"{len(dataset):,}")
         with col2:
             st.metric("📋 Columns", len(dataset.columns))
         with col3:
-            st.metric("📝 Text Column", text_column if text_column else "Not selected")
+            # Calculate dataset size in memory
+            size_bytes = dataset.memory_usage(deep=True).sum()
+            if size_bytes < 1024:
+                size_str = f"{size_bytes} B"
+            elif size_bytes < 1024**2:
+                size_str = f"{size_bytes/1024:.2f} KB"
+            elif size_bytes < 1024**3:
+                size_str = f"{size_bytes/(1024**2):.2f} MB"
+            else:
+                size_str = f"{size_bytes/(1024**3):.2f} GB"
+            st.metric("💾 Size", size_str)
+
         with col4:
             st.metric("📄 Source", st.session_state.globalData['originalFileName'])
-        
+        with col5:
+            st.metric("📝 Text Column", text_column if text_column else "Not selected")
+
         # Preview
         st.markdown("**Dataset Preview (first 5 rows):**")
         st.dataframe(dataset.head(5), use_container_width=True)
-        
+
         # Check if configuration is complete
         if text_column is None:
             st.warning("⚠️ Please select a text column in the Home page to enable classification.")
     else:
         st.warning("⚠️ **No dataset loaded.** Please upload a dataset in the Home page first.")
-        st.info("👈 Go to **Home** to upload and configure your dataset.")
+        st.info("� Go to **Home** to upload and configure your dataset.")
 
 st.markdown("")
 
@@ -200,13 +225,13 @@ with st.container(border=True):
             )
             st.session_state.llmData['selectedModel'] = selected_model
         else:
-            st.warning("No models available for this provider.")
+            st.warning("⚠️ No models available for this provider.")
             selected_model = None
 
     # Show model info
     if selected_model and selected_model in available_models:
         model_info = available_models[selected_model]
-        st.info(f"**{model_info['name']}**: {model_info['description']} (Context: {model_info['context_window']:,} tokens)")
+        st.info(f"💡 **{model_info['name']}**: {model_info['description']} (Context: {model_info['context_window']:,} tokens)")
 
     st.markdown("---")
 
@@ -236,10 +261,10 @@ with st.container(border=True):
                     is_valid, message = validate_api_key(selected_model, api_key_input)
                     if is_valid:
                         st.session_state.llmData['apiKeyValidated'] = True
-                        st.success(message)
+                        st.success(f"✅ {message}")
                     else:
                         st.session_state.llmData['apiKeyValidated'] = False
-                        st.error(message)
+                        st.error(f"❌ {message}")
             else:
                 st.warning("⚠️ Please enter an API key.")
 
@@ -247,7 +272,7 @@ with st.container(border=True):
         if st.session_state.llmData['apiKeyValidated']:
             st.success("✅ API Key Validated")
         else:
-            st.info("🔐 API Key not validated yet")
+            st.info("� API Key not validated yet")
 
     st.markdown("---")
 
@@ -530,7 +555,7 @@ with st.container(border=True):
         if st.session_state.llmData['promptInstructions'] == '':
             missing.append("📋 Prompt instructions")
 
-        st.info("⚠️ Complete the previous steps before classification.")
+        st.info("💡 Complete the previous steps before classification.")
         st.markdown("**Missing requirements:**")
         for item in missing:
             st.markdown(f"- {item}")
@@ -569,4 +594,4 @@ with st.container(border=True):
         output_filename = st.session_state.globalData['outputFileName']
         output_directory = st.session_state.globalData['outputDirectory']
         full_path = os.path.join(output_directory, f"{output_filename}.{output_format}")
-        st.success(f"💾 File saved at: `{full_path}`")
+        st.success(f"✅ File saved at: `{full_path}`")

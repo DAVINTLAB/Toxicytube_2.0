@@ -139,11 +139,11 @@ with st.container(border=True):
 
                         # Video title
                         title = snippet.get('title', 'Title not available')
-                        st.info(f"**📝 Title**: {title[:100]}")
+                        st.info(f"💡 **📝 Title**: {title[:100]}")
 
                         # Channel name
                         channel = snippet.get('channelTitle', 'Channel not available')
-                        st.info(f"**👤 Channel**: {channel}")
+                        st.info(f"💡 **👤 Channel**: {channel}")
 
                         # View count
                         views = statistics.get('viewCount')
@@ -165,14 +165,14 @@ with st.container(border=True):
                         # Video duration
                         duration = contentDetails.get('duration')
                         if duration:
-                            st.info(f"**⏱️ Duration**: {formatDuration(duration)}")
+                            st.info(f"💡 **⏱️ Duration**: {formatDuration(duration)}")
 
                         # Publication date
                         publishedAt = snippet.get('publishedAt')
                         if publishedAt:
                             from datetime import datetime
                             pubDate = datetime.fromisoformat(publishedAt.replace('Z', '+00:00'))
-                            st.info(f"**📅 Published**: {pubDate.strftime('%d/%m/%Y')}")
+                            st.info(f"💡 **📅 Published**: {pubDate.strftime('%d/%m/%Y')}")
 
                         # # Video description preview
                         # description = snippet.get('description', '')
@@ -182,12 +182,12 @@ with st.container(border=True):
                     else:
                         st.warning(f"⚠️ Could not get detailed information: {error}")
                         # Show basic info
-                        st.info(f"**🆔 Video ID**: {videoId}")
+                        st.info(f"💡 **🆔 Video ID**: {videoId}")
                         st.info("💡 Configure a valid API key to see more information")
 
                 else:
                     # Show basic info without API
-                    st.info(f"**🆔 Video ID**: {videoId}")
+                    st.info(f"💡 **🆔 Video ID**: {videoId}")
                     st.info("💡 Configure the API to see detailed information such as:")
                     st.markdown("""
                 - 👁️ Views
@@ -313,7 +313,7 @@ with st.container(border=True):
     # Show preview of full file name
     if outputFileName.strip():
         fullFileName = f"{outputFileName.strip()}.{outputFormat}"
-        st.info(f"**💡 Final file with comments**: {fullFileName}")
+        st.info(f"💡 **💡 Final file with comments**: {fullFileName}")
 
     # Check if configuration is complete
     if not (outputDirectory.strip() and outputFileName.strip()):
@@ -385,7 +385,7 @@ with st.container(border=True):
         outputDirectory = dirResult['directory']
 
         if dirResult['created']:
-            st.success(f"📁 Directory created: {outputDirectory}")
+            st.success(f"✅ Directory created: {outputDirectory}")
 
         if dirResult['usedFallback']:
             st.warning(f"⚠️ Permission denied. Using alternative directory: {outputDirectory}")
@@ -548,7 +548,7 @@ with st.container(border=True):
                 st.metric("💾 File Size", f"{results['fileSize'] / 1024:.1f} KB")
 
             # Show video info
-            st.info(f"**💡 Comments Location**: {results['outputPath']}")
+            st.info(f"💡 **💡 Comments Location**: {results['outputPath']}")
 
             # Show sample data if available
             if os.path.exists(results['outputPath']):
