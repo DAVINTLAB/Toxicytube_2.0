@@ -38,7 +38,72 @@ if 'youtubeTask' not in st.session_state:
         'outputFormat': 'csv',              # File format (csv, xlsx, json)
         'maxComments': 100,                 # Maximum number of comments to collect
         'isExecuting': False,               # Execution status
-        'collectionResults': None           # Collection results
+        'collectionResults': None,          # Collection results
+        'videoCommentCount': 0,             # Total comments available in video
+        'videoTitle': ''                    # Video title
+    }
+
+# =============================================================================
+# Helper Functions - Quota Estimation
+# =============================================================================
+
+def sanitize_filename(filename):
+    """
+    Remove or replace characters that are not allowed in filenames.
+    
+    Args:
+        filename: Original filename string
+        
+    Returns:
+        Sanitized filename safe for all operating systems
+    """
+    # Replace invalid characters with underscore
+    invalid_chars = '<>:"/\\|?*'
+    for char in invalid_chars:
+        filename = filename.replace(char, '_')
+
+    # Replace multiple spaces with single underscore
+    import re
+    filename = re.sub(r'\s+', '_', filename)
+
+    # Remove leading/trailing underscores and dots
+    filename = filename.strip('_.')
+
+    # Limit length to 200 characters
+    if len(filename) > 200:
+        filename = filename[:200]
+
+    return filename
+
+def estimate_quota_cost(num_comments):
+    """
+    Estimate API quota cost for collecting comments.
+    
+    YouTube API Quota costs:
+    - videos.list: 1 unit
+    - commentThreads.list: 1 unit per request (max 100 comments per request)
+    
+    Args:
+        num_comments: Number of comments to collect
+        
+    Returns:
+        dict with quota estimation details
+    """
+    # Initial video info request
+    video_info_cost = 1
+
+    # Comment requests (100 comments per request, 1 unit each)
+    num_requests = (num_comments + 99) // 100  # Ceiling division
+    comments_cost = num_requests
+
+    total_cost = video_info_cost + comments_cost
+
+    return {
+        'video_info_cost': video_info_cost,
+        'comments_cost': comments_cost,
+        'num_requests': num_requests,
+        'total_cost': total_cost,
+        'percentage_of_daily': (total_cost / 10000) * 100
     }
 
 # =============================================================================
@@ -139,11 +204,14 @@ with st.container(border=True):
 
                         # Video title
                         title = snippet.get('title', 'Title not available')
-                        st.info(f"💡 **📝 Title**: {title[:100]}")
+                        st.info(f"**📝 Title**: {title[:100]}")
+
+                        # Store video title in session state
+                        st.session_state.youtubeTask['videoTitle'] = title
 
                         # Channel name
                         channel = snippet.get('channelTitle', 'Channel not available')
-                        st.info(f"💡 **👤 Channel**: {channel}")
+                        st.info(f"**👤 Channel**: {channel}")
 
                         # View count
                         views = statistics.get('viewCount')
@@ -159,20 +227,23 @@ with st.container(border=True):
                         comments = statistics.get('commentCount')
                         if comments:
                             st.metric("💬 Comments", formatNumber(comments))
+                            # Store comment count in session state
+                            st.session_state.youtubeTask['videoCommentCount'] = int(comments)
                         else:
                             st.warning("⚠️ Comments may be disabled")
+                            st.session_state.youtubeTask['videoCommentCount'] = 0
 
                         # Video duration
                         duration = contentDetails.get('duration')
                         if duration:
-                            st.info(f"💡 **⏱️ Duration**: {formatDuration(duration)}")
+                            st.info(f"**⏱️ Duration**: {formatDuration(duration)}")
 
                         # Publication date
                         publishedAt = snippet.get('publishedAt')
                         if publishedAt:
                             from datetime import datetime
                             pubDate = datetime.fromisoformat(publishedAt.replace('Z', '+00:00'))
-                            st.info(f"💡 **📅 Published**: {pubDate.strftime('%d/%m/%Y')}")
+                            st.info(f"**📅 Published**: {pubDate.strftime('%d/%m/%Y')}")
 
                         # # Video description preview
                         # description = snippet.get('description', '')
@@ -182,12 +253,10 @@ with st.container(border=True):
                     else:
                         st.warning(f"⚠️ Could not get detailed information: {error}")
                         # Show basic info
-                        st.info(f"💡 **🆔 Video ID**: {videoId}")
                         st.info("💡 Configure a valid API key to see more information")
 
                 else:
                     # Show basic info without API
-                    st.info(f"💡 **🆔 Video ID**: {videoId}")
                     st.info("💡 Configure the API to see detailed information such as:")
                     st.markdown("""
                 - 👁️ Views
@@ -203,24 +272,122 @@ with st.container(border=True):
     else:
         st.warning("⚠️ Enter the YouTube video URL to continue.")
 
-    # Maximum comments to fetch
-    maxComments = st.number_input(
-        "Maximum Comments to Collect:",
-        min_value=1,
-        max_value=10000,
-        value=st.session_state.youtubeTask['maxComments'],
-        help="Maximum number of comments to collect (the API has rate limits)"
-    )
-
-    # Update max comments
-    st.session_state.youtubeTask['maxComments'] = maxComments
-
-    # API Quota information
-    st.info("💡 **Important**: The YouTube API has a quota system that limits the number of comments that can be collected per day. Each request consumes part of your daily quota. More information about quota costs [here](https://developers.google.com/youtube/v3/determine_quota_cost).")
-
     # Step 1 completion indicator
     if step1_complete:
         st.success("✅ **Step 1 completed!** API configured and video selected.")
+
+st.markdown("")
+
+# =============================================================================
+# Step 2: Collection Settings
+# =============================================================================
+
+# Recalculate step1_complete after session state updates
+step1_complete = (
+    st.session_state.youtubeTask['apiKey'].strip() != '' and
+    st.session_state.youtubeTask['videoId'] is not None and
+    st.session_state.youtubeTask['videoId'] != ''
+)
+
+# Check if step 2 is complete
+step2_complete = st.session_state.youtubeTask['maxComments'] > 0
+
+with st.container(border=True):
+    st.markdown("### 📊 Step 2: Collection Settings")
+    st.markdown("Configure how many comments to collect and estimate API quota usage.")
+
+    if step1_complete:
+        video_comment_count = st.session_state.youtubeTask.get('videoCommentCount', 0)
+
+        # Collect All checkbox
+        if video_comment_count > 0:
+            collect_all = st.checkbox(
+                "📥 Collect All Comments",
+                value=True,
+                help=f"Automatically collect all {video_comment_count:,} comments from the video"
+            )
+        else:
+            collect_all = False
+
+        # Create columns: input field and quota estimation
+        input_col, quota_col1, quota_col2, quota_col3 = st.columns([2, 1.5, 1.5, 1.5])
+
+        with input_col:
+            if video_comment_count > 0:
+                max_available = min(video_comment_count, 10000)
+
+                # If collect_all is checked, set to max_available and disable input
+                if collect_all:
+                    maxComments = max_available
+                    st.number_input(
+                        "Number of Comments to Collect:",
+                        min_value=1,
+                        max_value=max_available,
+                        value=max_available,
+                        disabled=True,
+                        help=f"Collecting all available comments: {max_available:,}"
+                    )
+                else:
+                    maxComments = st.number_input(
+                        "Number of Comments to Collect:",
+                        min_value=1,
+                        max_value=max_available,
+                        value=min(st.session_state.youtubeTask['maxComments'], max_available),
+                        help=f"Enter number of comments to collect (max available: {video_comment_count:,})"
+                    )
+
+                # Show percentage of total
+                percentage_selected = (maxComments / video_comment_count) * 100
+                st.caption(f"{maxComments:,} of {video_comment_count:,} comments ({percentage_selected:.1f}%)")
+            else:
+                maxComments = st.number_input(
+                    "Maximum Comments to Collect:",
+                    min_value=1,
+                    max_value=10000,
+                    value=st.session_state.youtubeTask['maxComments'],
+                    help="Maximum number of comments to collect"
+                )
+
+        # Update max comments
+        st.session_state.youtubeTask['maxComments'] = maxComments
+
+        # API Quota estimation in columns next to input
+        quota_info = estimate_quota_cost(maxComments)
+
+        with quota_col1:
+            st.metric(
+                "API Requests",
+                f"{quota_info['num_requests'] + 1}",
+                help="Number of API requests needed"
+            )
+
+        with quota_col2:
+            st.metric(
+                "Quota Cost",
+                f"{quota_info['total_cost']:,}",
+                help="Total quota units consumed"
+            )
+
+        with quota_col3:
+            st.metric(
+                "Daily Usage",
+                f"{quota_info['percentage_of_daily']:.1f}%",
+                help="% of daily quota (10,000 units)"
+            )
+
+        st.markdown("")
+
+        # Quota information
+        st.info("💡 **YouTube API Quota:** Daily limit of 10,000 units (resets at midnight Pacific Time). Video info costs 1 unit, comments cost 1 unit per 100 comments.")
+
+        # Important note about comment collection
+        st.warning("⚠️ **Note:** Only top-level comments are collected (replies are excluded). The final count may be lower than the video's total comment count.")
+    else:
+        st.info("💡 Complete Step 1 to configure collection settings.")
+
+    # Step 2 completion indicator
+    if step2_complete:
+        st.success("✅ **Step 2 completed!** Collection settings configured.")
 
 st.markdown("")
 
@@ -229,69 +396,38 @@ st.markdown("")
 # =============================================================================
 
 # Check if step 3 is complete
-step3_complete = (
-    st.session_state.youtubeTask['outputDirectory'].strip() != '' and
-    st.session_state.youtubeTask['outputFileName'].strip() != ''
-)
+step3_complete = st.session_state.youtubeTask['outputFileName'].strip() != ''
 
 with st.container(border=True):
     st.markdown("### 💾 Step 3: Output Configuration")
-    st.markdown("Configure where and how the comments will be saved.")
+    st.markdown("Configure the file format for saving the comments.")
 
-    # Default path suggestions
-    defaultPaths = [
-        str(pathlib.Path.home() / "Desktop"),
-        str(pathlib.Path.home() / "Documents"),
-        str(pathlib.Path.home() / "Downloads"),
-    ]
-
-    # Get current suggested path
-    currentSuggestion = st.session_state.youtubeTask['outputDirectory'] or defaultPaths[0]
-
-    # Create columns for text input and buttons
-    textCol, btn1Col, btn2Col, btn3Col = st.columns([8.5, 0.5, 0.5, 0.5])
-
-    with textCol:
-        outputDirectory = st.text_input(
-            label="Output Directory:",
-            value=currentSuggestion,
-            placeholder="Ex: C:/Users/username/Desktop/youtube_comments/",
-            help="Directory where the file will be saved",
-        )
-
-    with btn1Col:
-        # Adiciona um pequeno espaço no topo para alinhar
-        st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
-        if st.button("📋", help="Desktop", use_container_width=True):
-            st.session_state.youtubeTask['outputDirectory'] = defaultPaths[0]
-            st.rerun()
-
-    with btn2Col:
-        st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
-        if st.button("📁", help="Documents", use_container_width=True):
-            st.session_state.youtubeTask['outputDirectory'] = defaultPaths[1]
-            st.rerun()
-
-    with btn3Col:
-        st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
-        if st.button("⬇️", help="Downloads", use_container_width=True):
-            st.session_state.youtubeTask['outputDirectory'] = defaultPaths[2]
-            st.rerun()
-
-    # Update output directory
+    # Set output directory to Downloads by default
+    outputDirectory = str(pathlib.Path.home() / "Downloads")
     st.session_state.youtubeTask['outputDirectory'] = outputDirectory
+
+    # Generate default file name from video title
+    video_title = st.session_state.youtubeTask.get('videoTitle', '')
+    if video_title:
+        sanitized_title = sanitize_filename(video_title)
+        defaultFileName = f"{sanitized_title}__comments"
+    else:
+        defaultFileName = f"comments_{st.session_state.youtubeTask.get('videoId', 'unknown')}_{datetime.now().strftime('%d-%m-%Y')}"
+
+    # Auto-update filename when video title is available
+    current_filename = st.session_state.youtubeTask.get('outputFileName', '')
+    if video_title and (not current_filename or current_filename.startswith('comments_')):
+        # Update to use video title if we have it and current name is generic
+        st.session_state.youtubeTask['outputFileName'] = defaultFileName
 
     # Create two columns for file name and format
     nameCol, formatCol = st.columns([8.5, 1.5])
 
     with nameCol:
-        # Default file name with timestamp
-        defaultFileName = f"comments_{st.session_state.youtubeTask.get('videoId', 'unknown')}_{datetime.now().strftime('%d-%m-%Y')}"
-
         outputFileName = st.text_input(
             "File name (without extension):",
-            value=st.session_state.youtubeTask.get('outputFileName') or defaultFileName,
-            placeholder=f"comments_{st.session_state.youtubeTask.get('videoId', 'unknown')}_{datetime.now().strftime('%d-%m-%Y')}",
+            value=st.session_state.youtubeTask.get('outputFileName', defaultFileName),
+            placeholder=defaultFileName,
             help="Enter the desired file name"
         )
 
@@ -310,14 +446,15 @@ with st.container(border=True):
         # Update output format
         st.session_state.youtubeTask['outputFormat'] = outputFormat
 
-    # Show preview of full file name
+    # Show preview of full file name and path
     if outputFileName.strip():
         fullFileName = f"{outputFileName.strip()}.{outputFormat}"
-        st.info(f"💡 **💡 Final file with comments**: {fullFileName}")
+        full_path = os.path.join(outputDirectory, fullFileName)
+        st.info(f"💡 **File will be saved to**: {full_path}")
 
     # Check if configuration is complete
-    if not (outputDirectory.strip() and outputFileName.strip()):
-        st.warning("⚠️ Fill in all fields to continue.")
+    if not outputFileName.strip():
+        st.warning("⚠️ Please enter a file name to continue.")
 
     # Step 3 completion indicator
     if step3_complete:
@@ -548,7 +685,7 @@ with st.container(border=True):
                 st.metric("💾 File Size", f"{results['fileSize'] / 1024:.1f} KB")
 
             # Show video info
-            st.info(f"💡 **💡 Comments Location**: {results['outputPath']}")
+            st.info(f"💡 **Comments Location**: {results['outputPath']}")
 
             # Show sample data if available
             if os.path.exists(results['outputPath']):

@@ -164,7 +164,6 @@ with st.container(border=True):
             st.warning("⚠️ Please select a text column in the Home page to enable classification.")
     else:
         st.warning("⚠️ **No dataset loaded.** Please upload a dataset in the Home page first.")
-        st.info("� Go to **Home** to upload and configure your dataset.")
 
 st.markdown("")
 
@@ -269,22 +268,25 @@ with st.container(border=True):
 
         model_info = st.session_state.classificationData['modelInfo']
 
-        # Create columns for model info
-        col1, col2, col3 = st.columns(3)
+        # Create columns for model info - all in one line
+        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
 
         with col1:
             st.metric("Model Type", model_info.get('model_type', 'N/A').upper())
-            st.metric("Number of Labels", model_info.get('num_labels', 'N/A'))
-            st.metric("Device", model_info.get('device', 'N/A'))
-
         with col2:
-            st.metric("Max Length", model_info.get('max_position_embeddings', 'N/A'))
-            st.metric("Vocabulary Size", f"{model_info.get('vocab_size', 0):,}")
-            st.metric("Hidden Layers", model_info.get('num_hidden_layers', 'N/A'))
-
+            st.metric("Num Labels", model_info.get('num_labels', 'N/A'))
         with col3:
+            st.metric("Device", model_info.get('device', 'N/A'))
+        with col4:
+            st.metric("Max Length", model_info.get('max_position_embeddings', 'N/A'))
+        with col5:
+            st.metric("Vocab Size", f"{model_info.get('vocab_size', 0):,}")
+        with col6:
+            st.metric("Hidden Layers", model_info.get('num_hidden_layers', 'N/A'))
+        with col7:
             st.metric("Hidden Size", model_info.get('hidden_size', 'N/A'))
-            st.metric("Attention Heads", model_info.get('num_attention_heads', 'N/A'))
+        with col8:
+            st.metric("Attn Heads", model_info.get('num_attention_heads', 'N/A'))
 
         # Show labels
         if model_info.get('labels'):
@@ -297,50 +299,126 @@ with st.container(border=True):
 
         st.markdown("---")
 
+        # Label customization section
+        with st.expander("🏷️ Customize Label Names (Optional)", expanded=False):
+            st.markdown("Edit the label names according to the model documentation. This will be used in the classification results.")
+
+            original_labels = model_info.get('labels', {})
+
+            # Initialize custom labels in session state if not exists
+            if 'customLabels' not in st.session_state.classificationData:
+                st.session_state.classificationData['customLabels'] = original_labels.copy()
+
+            custom_labels = st.session_state.classificationData['customLabels']
+
+            st.markdown("**Current Labels:**")
+
+            # Create input fields for each label
+            updated_labels = {}
+            for label_id, label_name in sorted(original_labels.items()):
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    st.text_input(
+                        f"ID {label_id}",
+                        value=str(label_id),
+                        disabled=True,
+                        key=f"label_id_{label_id}"
+                    )
+                with col2:
+                    new_name = st.text_input(
+                        f"Label Name",
+                        value=custom_labels.get(label_id, label_name),
+                        key=f"label_name_{label_id}",
+                        placeholder=f"Original: {label_name}"
+                    )
+                    updated_labels[label_id] = new_name
+
+            # Update button
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("💾 Save Custom Labels", use_container_width=True):
+                    st.session_state.classificationData['customLabels'] = updated_labels
+                    st.success("✅ Custom labels saved!")
+                    st.rerun()
+
+            with col2:
+                if st.button("🔄 Reset to Original Labels", use_container_width=True):
+                    st.session_state.classificationData['customLabels'] = original_labels.copy()
+                    st.success("✅ Labels reset to original!")
+                    st.rerun()
+
+
         # Test model section
-        st.markdown("#### 🧪 Test Model")
-        st.markdown("Enter text to test the model's classification.")
+        with st.expander("🧪 Test Model", expanded=False):
+            st.markdown("Enter text to test the model's classification.")
 
-        test_text = st.text_area(
-            "Test text:",
-            placeholder="Enter sample text to classify here...",
-            height=100
-        )
+            test_text = st.text_area(
+                "Test text:",
+                placeholder="Enter sample text to classify here...",
+                height=100
+            )
 
-        if st.button("🔍 Classify Test Text", use_container_width=True):
-            if test_text.strip():
-                with st.spinner("Classifying..."):
-                    try:
-                        model = st.session_state.classificationData['model']
-                        tokenizer = st.session_state.classificationData['tokenizer']
-                        max_length = model_info['max_position_embeddings']
-                        labels = model_info['labels']
+            if st.button("🔍 Classify Test Text", use_container_width=True):
+                if test_text.strip():
+                    with st.spinner("Classifying..."):
+                        try:
+                            model = st.session_state.classificationData['model']
+                            tokenizer = st.session_state.classificationData['tokenizer']
+                            max_length = model_info['max_position_embeddings']
 
-                        prediction, probabilities = classify_single_text(
-                            test_text,
-                            model,
-                            tokenizer,
-                            max_length
-                        )
+                            # Use custom labels if available, otherwise use original labels
+                            if 'customLabels' in st.session_state.classificationData:
+                                labels = st.session_state.classificationData['customLabels']
+                            else:
+                                labels = model_info['labels']
 
-                        st.markdown("**Result:**")
-                        st.success(f"**Predicted Class:** {labels[prediction]}")
+                            prediction, probabilities = classify_single_text(
+                                test_text,
+                                model,
+                                tokenizer,
+                                max_length
+                            )
 
-                        st.markdown("**Probabilities by Class:**")
-                        prob_df = pd.DataFrame([
-                            {'Class': labels[i], 'Probability': f"{prob:.4f}", 'Percentage': f"{prob*100:.2f}%"}
-                            for i, prob in enumerate(probabilities)
-                        ]).sort_values('Probability', ascending=False)
+                            st.markdown("**Result:**")
+                            st.info(f"💡 **Predicted Class:** {labels[prediction]}")
 
-                        st.dataframe(prob_df, use_container_width=True, hide_index=True)
+                            st.markdown("**Probabilities by Class:**")
+                            prob_df = pd.DataFrame([
+                                {'Class': labels[i], 'Probability': f"{prob:.4f}", 'Percentage': f"{prob*100:.2f}%"}
+                                for i, prob in enumerate(probabilities)
+                            ]).sort_values('Probability', ascending=False)
 
-                        # Bar chart
-                        st.bar_chart(prob_df.set_index('Class')['Probability'].astype(float))
+                            st.dataframe(prob_df, use_container_width=True, hide_index=True)
 
-                    except Exception as e:
-                        st.error(f"❌ Classification error: {str(e)}")
-            else:
-                st.warning("⚠️ Please enter text to test.")
+                            # Pie chart
+                            import plotly.express as px
+
+                            # Prepare data for pie chart
+                            pie_data = pd.DataFrame([
+                                {'Class': labels[i], 'Probability': prob}
+                                for i, prob in enumerate(probabilities)
+                            ])
+
+                            fig = px.pie(
+                                pie_data,
+                                values='Probability',
+                                names='Class',
+                                title='Probability Distribution',
+                                hole=0.3  # Makes it a donut chart for better aesthetics
+                            )
+
+                            fig.update_traces(
+                                textposition='inside',
+                                textinfo='percent+label',
+                                hovertemplate='<b>%{label}</b><br>Probability: %{value:.4f}<br>Percentage: %{percent}<extra></extra>'
+                            )
+
+                            st.plotly_chart(fig, use_container_width=True)
+
+                        except Exception as e:
+                            st.error(f"❌ Classification error: {str(e)}")
+                else:
+                    st.warning("⚠️ Please enter text to test.")
 
     # Step 1 completion indicator
     if step1_complete:
@@ -366,8 +444,6 @@ with st.container(border=True):
     st.markdown("### 🚀 Step 2: BERT Classification")
 
     if can_classify:
-        st.markdown("✅ Everything ready for classification!")
-
         # Check text lengths
         dataset = st.session_state.globalData['dataset']
         text_column = st.session_state.globalData['textColumn']
@@ -391,6 +467,8 @@ with st.container(border=True):
 
         if max_text_length > max_length:
             st.warning(f"⚠️ Some texts exceed the model's maximum length ({max_length} tokens). They will be truncated.")
+
+        st.markdown("")
 
         # Classification button
         if st.button("🚀 Start Classification", use_container_width=True, type="primary"):
@@ -428,8 +506,12 @@ with st.container(border=True):
                 progress_bar.progress(0.8)
                 status_text.text("Organizing results...")
 
-                # Create results dataframe
-                labels = st.session_state.classificationData['modelInfo']['labels']
+                # Use custom labels if available, otherwise use original labels
+                if 'customLabels' in st.session_state.classificationData:
+                    labels = st.session_state.classificationData['customLabels']
+                else:
+                    labels = st.session_state.classificationData['modelInfo']['labels']
+
                 results_df = create_results_dataframe(
                     dataset,
                     text_column,
@@ -488,10 +570,52 @@ with st.container(border=True):
 
         results_df = st.session_state.classificationData['classificationResults']
 
-        # Show distribution
-        st.markdown("**Label Distribution:**")
-        label_dist = results_df['predicted_label'].value_counts()
-        st.bar_chart(label_dist)
+        # Show threshold-based distribution chart
+        st.markdown("**Threshold-based Class Distribution:**")
+        st.markdown("This chart shows how many comments would be classified as each class at different probability thresholds.")
+
+        import plotly.graph_objects as go
+        import numpy as np
+
+        # Get probability columns
+        prob_columns = [col for col in results_df.columns if col.startswith('bert_prob_')]
+
+        # Generate thresholds from 0.0 to 1.0
+        thresholds = np.linspace(0.0, 1.0, 101)
+
+        fig = go.Figure()
+
+        # Add a line for each class
+        colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880']
+
+        for idx, col in enumerate(prob_columns):
+            class_name = col.replace('bert_prob_', '')
+            counts_at_threshold = []
+
+            for threshold in thresholds:
+                count = (results_df[col] >= threshold).sum()
+                counts_at_threshold.append(count)
+
+            color = colors[idx % len(colors)]
+            fig.add_trace(go.Scatter(
+                x=thresholds,
+                y=counts_at_threshold,
+                mode='lines',
+                name=class_name,
+                line=dict(color=color, width=2),
+                hovertemplate=f'<b>{class_name}</b><br>Threshold: %{{x:.2f}}<br>Count: %{{y}}<extra></extra>'
+            ))
+
+        fig.update_layout(
+            title='Comments per Class at Different Thresholds',
+            xaxis_title='Probability Threshold',
+            yaxis_title='Number of Comments',
+            hovermode='x unified',
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            height=500
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
         # Show preview
         st.markdown("**Classified Dataset Preview:**")
@@ -502,4 +626,4 @@ with st.container(border=True):
         output_filename = st.session_state.globalData['outputFileName']
         output_directory = st.session_state.globalData['outputDirectory']
         full_path = os.path.join(output_directory, f"{output_filename}.{output_format}")
-        st.success(f"✅ File saved at: `{full_path}`")
+        st.info(f"💡 File saved at: `{full_path}`")

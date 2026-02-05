@@ -159,7 +159,6 @@ with st.container(border=True):
             st.warning("⚠️ Please select a text column in the Home page to enable classification.")
     else:
         st.warning("⚠️ **No dataset loaded.** Please upload a dataset in the Home page first.")
-        st.info("� Go to **Home** to upload and configure your dataset.")
 
 st.markdown("")
 

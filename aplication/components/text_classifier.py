@@ -336,10 +336,7 @@ def create_results_dataframe(original_df, text_column, predictions, probabilitie
 
     # Add probability columns for each label
     for label_id, label_name in labels.items():
-        results_df[f'prob_{label_name}'] = [prob[label_id] for prob in probabilities]
-
-    # Add predicted label column
-    results_df['predicted_label'] = [labels[pred] for pred in predictions]
+        results_df[f'bert_prob_{label_name}'] = [prob[label_id] for prob in probabilities]
 
     return results_df
 

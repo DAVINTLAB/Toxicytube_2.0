@@ -215,7 +215,6 @@ with st.container(border=True):
         st.write(", ".join([f"`{col}`" for col in dataset.columns]))
     else:
         st.warning("⚠️ **No dataset loaded.** Please upload a dataset in the Home page first.")
-        st.info("� Go to **Home** to upload and configure your dataset.")
 
 st.markdown("")
 
