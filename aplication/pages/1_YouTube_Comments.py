@@ -311,7 +311,7 @@ with st.container(border=True):
 
         with input_col:
             if video_comment_count > 0:
-                max_available = min(video_comment_count, 10000)
+                max_available = video_comment_count
 
                 # If collect_all is checked, set to max_available and disable input
                 if collect_all:
@@ -340,7 +340,6 @@ with st.container(border=True):
                 maxComments = st.number_input(
                     "Maximum Comments to Collect:",
                     min_value=1,
-                    max_value=10000,
                     value=st.session_state.youtubeTask['maxComments'],
                     help="Maximum number of comments to collect"
                 )
