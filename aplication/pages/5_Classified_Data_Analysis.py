@@ -9,9 +9,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 import os
 import re
+import nltk
+from nltk.corpus import stopwords
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from io import BytesIO
+
+# Garantir que stopwords em português estejam disponíveis
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
 
 from components.navigation import render_navigation, get_configuration_status
 
@@ -904,6 +912,19 @@ if config_status['complete']:
                         key="wordcloud_min_length"
                     )
 
+                # Palavras extras a remover (complementa NLTK)
+                with st.expander("🚫 Words to remove from cloud (optional)", expanded=False):
+                    st.markdown("Enter comma-separated words to exclude from the word cloud (in addition to NLTK stopwords).")
+                    custom_stopwords_input = st.text_area(
+                        "Words to remove:",
+                        placeholder="E.g.: video, channel, like, subscribe, thanks, ...",
+                        height=80,
+                        key="wordcloud_custom_stopwords"
+                    )
+                    custom_stopwords_set = set(
+                        w.strip().lower() for w in custom_stopwords_input.split(",") if w.strip()
+                    ) if custom_stopwords_input else set()
+
                 # Optional: Filter by classification
                 st.markdown("**Optional: Filter by classification**")
 
@@ -977,30 +998,33 @@ if config_status['complete']:
                 if st.button("Generate Word Cloud", use_container_width=True, type="primary", key="generate_wordcloud"):
                     if len(filtered_texts) > 0:
                         with st.spinner("Generating word cloud..."):
-                            # Combine all texts
-                            all_text = ' '.join(filtered_texts)
+                            # Stopwords em português + palavras customizadas do usuário
+                            stop_words = set(stopwords.words('portuguese')) | custom_stopwords_set
+                            palavras = []
 
-                            # Clean text: remove URLs, mentions, special characters
-                            all_text = re.sub(r'http\S+|www\S+|https\S+', '', all_text)
-                            all_text = re.sub(r'@\w+', '', all_text)
-                            all_text = re.sub(r'#\w+', '', all_text)
-                            all_text = re.sub(r'[^\w\s]', ' ', all_text)
-                            all_text = re.sub(r'\s+', ' ', all_text)
-                            all_text = all_text.lower()
+                            for msg in filtered_texts:
+                                msg = str(msg).lower()
+                                msg = re.sub(r':[a-zA-Z0-9_]+:', '', msg)  # remove emojis :nome:
+                                msg = re.sub(r'http\S+|www\S+|https\S+', '', msg)
+                                msg = re.sub(r'@\w+', '', msg)
+                                msg = re.sub(r'#\w+', '', msg)
+                                msg = re.sub(r'[^\w\s]', ' ', msg)
+                                msg = re.sub(r'\s+', ' ', msg)
+                                for palavra in msg.split():
+                                    if palavra not in stop_words and len(palavra) >= min_word_length:
+                                        palavras.append(palavra)
 
-                            # Filter by word length
-                            words = all_text.split()
-                            words = [w for w in words if len(w) >= min_word_length]
-                            all_text = ' '.join(words)
+                            all_text = ' '.join(palavras)
 
                             if all_text.strip():
-                                # Generate word cloud
+                                # Generate word cloud (com stopwords também no WordCloud)
                                 wordcloud = WordCloud(
                                     width=1200,
                                     height=600,
                                     max_words=max_words,
                                     background_color='white',
                                     colormap='viridis',
+                                    stopwords=stop_words,
                                     min_word_length=min_word_length,
                                     collocations=False,
                                     random_state=42
