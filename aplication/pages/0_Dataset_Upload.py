@@ -280,7 +280,6 @@ if st.session_state.globalData['dataset'] is not None:
         if outputFileName and st.session_state.globalData.get('outputFormat'):
             outputFormat = st.session_state.globalData['outputFormat']
             full_path = os.path.join(outputDirectory, f"{outputFileName}.{outputFormat}")
-            st.info(f"💡 **Output path:** `{full_path}`")
 
         # Check if configuration is complete
         config_complete = (

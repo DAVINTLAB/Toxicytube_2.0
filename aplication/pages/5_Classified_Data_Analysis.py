@@ -383,6 +383,7 @@ def create_top_comments_table(df, text_column, likes_col, author_col, reply_col,
     # Build display columns
     display_cols = []
     rename_map = {}
+    separator_cols = []
 
     # Likes column
     if likes_col and likes_col in df.columns:
@@ -408,18 +409,36 @@ def create_top_comments_table(df, text_column, likes_col, author_col, reply_col,
     prob_columns = []
 
     # BERT columns
+    has_bert = False
     for label, col in bert_cols.items():
         if col in df.columns:
             display_cols.append(col)
             rename_map[col] = f'🤖 {label}'
             prob_columns.append(f'🤖 {label}')
+            has_bert = True
+
+    # Add separator after BERT if exists and before Detoxify
+    if has_bert and len(detoxify_cols) > 0:
+        separator_col_name = '│ (1)'
+        df_sorted[separator_col_name] = ''
+        display_cols.append(separator_col_name)
+        separator_cols.append(separator_col_name)
 
     # Detoxify columns
+    has_detoxify = False
     for label, col in detoxify_cols.items():
         if col in df.columns:
             display_cols.append(col)
             rename_map[col] = f'🛡️ {label}'
             prob_columns.append(f'🛡️ {label}')
+            has_detoxify = True
+
+    # Add separator after Detoxify if exists and before LLM
+    if has_detoxify and 'classification' in llm_cols and llm_cols['classification'] in df.columns:
+        separator_col_name = '│ (2)'
+        df_sorted[separator_col_name] = ''
+        display_cols.append(separator_col_name)
+        separator_cols.append(separator_col_name)
 
     # LLM columns
     if 'classification' in llm_cols and llm_cols['classification'] in df.columns:
@@ -440,7 +459,7 @@ def create_top_comments_table(df, text_column, likes_col, author_col, reply_col,
     # Reset index
     df_display = df_display.reset_index(drop=True)
 
-    return df_display, prob_columns
+    return df_display, prob_columns, separator_cols
 
 # =============================================================================
 # Main Content
@@ -785,7 +804,7 @@ if config_status['complete']:
                         sort_by = 'likes'
 
                 # Create table
-                df_display, prob_columns = create_top_comments_table(
+                df_display, prob_columns, separator_cols = create_top_comments_table(
                     dataset, text_column, likes_col, author_col, reply_col,
                     bert_cols, detoxify_cols, llm_cols, sort_by, top_n
                 )
@@ -806,22 +825,38 @@ if config_status['complete']:
                         </style>
                     """, unsafe_allow_html=True)
 
-                    # Apply styling to probability columns
-                    if prob_columns:
+                    # Apply styling to probability columns and separators
+                    if prob_columns or separator_cols:
                         # Format probability columns to 3 decimal places
                         format_dict = {col: '{:.3f}' for col in prob_columns if col in df_display.columns}
 
-                        # Apply color styling
-                        styled_df = df_display.style.applymap(
-                            lambda val: get_probability_value_color(val) if isinstance(val, (int, float)) and 0 <= val <= 1 else '',
-                            subset=[col for col in prob_columns if col in df_display.columns]
-                        ).format(format_dict)
+                        # Apply color styling to probabilities
+                        if prob_columns:
+                            styled_df = df_display.style.applymap(
+                                lambda val: get_probability_value_color(val) if isinstance(val, (int, float)) and 0 <= val <= 1 else '',
+                                subset=[col for col in prob_columns if col in df_display.columns]
+                            )
+                        else:
+                            styled_df = df_display.style
+                        # Não aplicar estilização especial nas colunas separadoras
+                        styled_df = styled_df.format(format_dict)
+
+                        # Build column config for separators
+                        column_config = {}
+                        for sep_col in separator_cols:
+                            if sep_col in df_display.columns:
+                                column_config[sep_col] = st.column_config.TextColumn(
+                                    '│',
+                                    width='small',
+                                    help='Separador'
+                                )
 
                         st.dataframe(
                             styled_df,
                             use_container_width=True,
                             height=min(400 + (top_n * 10), 800),
-                            hide_index=True
+                            hide_index=True,
+                            column_config=column_config if column_config else None
                         )
                     else:
                         st.dataframe(
