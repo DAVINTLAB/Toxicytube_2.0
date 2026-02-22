@@ -307,14 +307,7 @@ with st.container(border=True):
     st.markdown("#### Classification Instructions")
     st.markdown("Define the instructions for the LLM classifier. Be specific about what the model should classify and how.")
 
-    default_instructions = """You are a sentiment classifier. Analyze the given text and classify it based on the emotional tone.
-
-Consider the following:
-- Positive: Texts expressing happiness, satisfaction, excitement, or praise
-- Negative: Texts expressing anger, disappointment, sadness, or criticism
-- Neutral: Texts that are factual, objective, or without clear emotional tone
-
-Classify each text into one of these categories based on the overall sentiment."""
+    default_instructions = """You are a sentiment analyzer. Classify the sentiment of the following comment as "positive", "negative", or "neutral"."""
 
     prompt_instructions = st.text_area(
         "Instructions (required):",
@@ -355,7 +348,12 @@ Classify each text into one of these categories based on the overall sentiment."
             if st.button("🔍 Test Classification", use_container_width=True, key="test_classification"):
                 if test_text_prompt.strip():
                     with st.spinner("Classifying..."):
-                        result, error = classify_single_text_llm(
+                        # Build a best-effort preview of the prompt sent to the model
+                        sent_prompt_preview = prompt_instructions.strip() + "\n\nText:\n" + test_text_prompt.strip()
+                        if prompt_labels and prompt_labels.strip():
+                            sent_prompt_preview += "\n\nLabels: " + prompt_labels.strip()
+
+                        result, raw_response, error = classify_single_text_llm(
                             test_text_prompt,
                             prompt_instructions,
                             prompt_labels if prompt_labels.strip() else None,
@@ -366,14 +364,23 @@ Classify each text into one of these categories based on the overall sentiment."
                         if error:
                             st.error(f"❌ {error}")
                         else:
-                            col1, col2, col3 = st.columns(3)
+                            col1, col2 = st.columns(2)
                             with col1:
                                 st.metric("Classification", result['classification'])
                             with col2:
                                 st.metric("Confidence", result['confidence'])
-                            with col3:
-                                st.metric("Reasoning", "See below")
                             st.markdown(f"**Reasoning:** {result['reasoning']}")
+
+                            st.markdown("---")
+                            st.markdown("**Prompt sent to model (preview):**")
+                            st.code(sent_prompt_preview, language='text')
+
+                            st.markdown("**Raw response from model (best-effort):**")
+                            # Show raw_response as JSON-like or string
+                            try:
+                                st.code(raw_response, language='json')
+                            except Exception:
+                                st.code(str(raw_response), language='text')
                 else:
                     st.warning("⚠️ Please enter sample text to test.")
 
@@ -660,10 +667,10 @@ with st.container(border=True):
         # Download button
         output_format = st.session_state.globalData['outputFormat']
         output_filename = st.session_state.globalData['outputFileName']
-        
+
         st.markdown("---")
         st.markdown("#### 💾 Download Classified Dataset")
-        
+
         # Convert DataFrame to bytes based on format
         if output_format == 'csv':
             file_data = results_df.to_csv(index=False).encode('utf-8')
@@ -685,7 +692,7 @@ with st.container(border=True):
             file_data = results_df.to_csv(index=False).encode('utf-8')
             mime_type = 'text/csv'
             output_format = 'csv'
-        
+
         st.download_button(
             label=f"📥 Download {output_filename}.{output_format}",
             data=file_data,

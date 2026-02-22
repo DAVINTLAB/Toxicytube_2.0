@@ -490,7 +490,7 @@ def classify_single_text_llm(
     labels: Optional[str],
     model_id: str,
     api_key: str
-) -> tuple[Optional[Dict], Optional[str]]:
+) -> tuple[Optional[Dict], Optional[str], Optional[str]]:
     """
     Classifies a single text using the LLM.
     
@@ -526,14 +526,31 @@ def classify_single_text_llm(
                     text=text
                 )
 
+            # Try to capture a raw response representation (best-effort)
+            raw_response = None
+            try:
+                raw_response = getattr(result, '_raw', None)
+            except Exception:
+                raw_response = None
+
+            if not raw_response:
+                try:
+                    # Fallback to dict or string representation
+                    raw_response = dict(result.__dict__)
+                except Exception:
+                    try:
+                        raw_response = str(result)
+                    except Exception:
+                        raw_response = None
+
             return {
                 'classification': result.classification,
                 'confidence': result.confidence,
                 'reasoning': result.reasoning
-            }, None
+            }, raw_response, None
 
     except Exception as e:
-        return None, str(e)
+        return None, None, str(e)
 
 
 def classify_texts_llm(
