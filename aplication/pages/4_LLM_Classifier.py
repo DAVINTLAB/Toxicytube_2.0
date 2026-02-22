@@ -276,13 +276,14 @@ with st.container(border=True):
             if st.button("🚀 Send Test Message", use_container_width=True, key="test_llm_connection"):
                 if test_message.strip() and api_key_input:
                     with st.spinner("Sending message to model..."):
-                        response, error = test_model_connection(selected_model, api_key_input, test_message)
+                        response, model_returned, error = test_model_connection(selected_model, api_key_input, test_message)
 
                         if error:
                             st.error(f"❌ {error}")
                         else:
                             st.markdown("**Response:**")
                             st.markdown(f"> {response}")
+                            st.markdown(f"**Model (from response):** {model_returned if model_returned else 'Unknown'}")
                 elif not api_key_input:
                     st.warning("⚠️ Please enter an API key first.")
                 else:

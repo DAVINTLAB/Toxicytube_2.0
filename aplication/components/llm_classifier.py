@@ -18,113 +18,241 @@ import dspy
 # =============================================================================
 
 LLM_MODELS = {
-    # OpenAI Models
-    'openai/gpt-4o': {
-        'name': 'GPT-4o',
+    # OpenAI Chat Completion Models
+    'openai/gpt-5': {
+        'name': 'GPT-5',
         'provider': 'OpenAI',
         'api_key_env': 'OPENAI_API_KEY',
-        'context_window': 128000
+    },
+    'openai/gpt-5-mini': {
+        'name': 'GPT-5 Mini',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-nano': {
+        'name': 'GPT-5 Nano',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-chat': {
+        'name': 'GPT-5 Chat',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-chat-latest': {
+        'name': 'GPT-5 Chat (Latest)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-2025-08-07': {
+        'name': 'GPT-5 (2025-08-07)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-mini-2025-08-07': {
+        'name': 'GPT-5 Mini (2025-08-07)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-nano-2025-08-07': {
+        'name': 'GPT-5 Nano (2025-08-07)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5-pro': {
+        'name': 'GPT-5 Pro',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.2': {
+        'name': 'GPT-5.2',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.2-2025-12-11': {
+        'name': 'GPT-5.2 (2025-12-11)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.2-chat-latest': {
+        'name': 'GPT-5.2 Chat (Latest)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.2-pro': {
+        'name': 'GPT-5.2 Pro',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.2-pro-2025-12-11': {
+        'name': 'GPT-5.2 Pro (2025-12-11)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.1': {
+        'name': 'GPT-5.1',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.1-codex': {
+        'name': 'GPT-5.1 Codex',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.1-codex-mini': {
+        'name': 'GPT-5.1 Codex Mini',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-5.1-codex-max': {
+        'name': 'GPT-5.1 Codex Max',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4.1': {
+        'name': 'GPT-4.1',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4.1-mini': {
+        'name': 'GPT-4.1 Mini',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4.1-nano': {
+        'name': 'GPT-4.1 Nano',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/o4-mini': {
+        'name': 'O4 Mini',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/o3-mini': {
+        'name': 'O3 Mini',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/o3': {
+        'name': 'O3',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/o1-mini': {
+        'name': 'O1 Mini',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/o1-preview': {
+        'name': 'O1 Preview',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
     'openai/gpt-4o-mini': {
         'name': 'GPT-4o Mini',
         'provider': 'OpenAI',
         'api_key_env': 'OPENAI_API_KEY',
-        'context_window': 128000
+    },
+    'openai/gpt-4o-mini-2024-07-18': {
+        'name': 'GPT-4o Mini (2024-07-18)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4o': {
+        'name': 'GPT-4o',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4o-2024-08-06': {
+        'name': 'GPT-4o (2024-08-06)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4o-2024-05-13': {
+        'name': 'GPT-4o (2024-05-13)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
     'openai/gpt-4-turbo': {
         'name': 'GPT-4 Turbo',
         'provider': 'OpenAI',
         'api_key_env': 'OPENAI_API_KEY',
-        'context_window': 128000
+    },
+    'openai/gpt-4-turbo-preview': {
+        'name': 'GPT-4 Turbo (Preview)',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4-0125-preview': {
+        'name': 'GPT-4 0125 Preview',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-4-1106-preview': {
+        'name': 'GPT-4 1106 Preview',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
+    },
+    'openai/gpt-3.5-turbo-1106': {
+        'name': 'GPT-3.5 Turbo 1106',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
     'openai/gpt-3.5-turbo': {
         'name': 'GPT-3.5 Turbo',
         'provider': 'OpenAI',
         'api_key_env': 'OPENAI_API_KEY',
-        'context_window': 16385
     },
-    # Anthropic Models
-    'anthropic/claude-3-5-sonnet-20241022': {
-        'name': 'Claude 3.5 Sonnet',
-        'provider': 'Anthropic',
-        'api_key_env': 'ANTHROPIC_API_KEY',
-        'context_window': 200000
+    'openai/gpt-3.5-turbo-0301': {
+        'name': 'GPT-3.5 Turbo 0301',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    'anthropic/claude-3-5-haiku-20241022': {
-        'name': 'Claude 3.5 Haiku',
-        'provider': 'Anthropic',
-        'api_key_env': 'ANTHROPIC_API_KEY',
-        'context_window': 200000
+    'openai/gpt-3.5-turbo-0613': {
+        'name': 'GPT-3.5 Turbo 0613',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    'anthropic/claude-3-opus-20240229': {
-        'name': 'Claude 3 Opus',
-        'provider': 'Anthropic',
-        'api_key_env': 'ANTHROPIC_API_KEY',
-        'context_window': 200000
+    'openai/gpt-3.5-turbo-16k': {
+        'name': 'GPT-3.5 Turbo 16k',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    # Google Models
-    'gemini/gemini-1.5-pro': {
-        'name': 'Gemini 1.5 Pro',
-        'provider': 'Google',
-        'api_key_env': 'GEMINI_API_KEY',
-        'context_window': 2000000
+    'openai/gpt-3.5-turbo-16k-0613': {
+        'name': 'GPT-3.5 Turbo 16k 0613',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    'gemini/gemini-1.5-flash': {
-        'name': 'Gemini 1.5 Flash',
-        'provider': 'Google',
-        'api_key_env': 'GEMINI_API_KEY',
-        'context_window': 1000000
+    'openai/gpt-4': {
+        'name': 'GPT-4',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    'gemini/gemini-2.0-flash': {
-        'name': 'Gemini 2.0 Flash',
-        'provider': 'Google',
-        'api_key_env': 'GEMINI_API_KEY',
-        'context_window': 1000000
+    'openai/gpt-4-0314': {
+        'name': 'GPT-4 0314',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    # Groq Models (Fast inference)
-    'groq/llama-3.3-70b-versatile': {
-        'name': 'Llama 3.3 70B (Groq)',
-        'provider': 'Groq',
-        'api_key_env': 'GROQ_API_KEY',
-        'context_window': 128000
+    'openai/gpt-4-0613': {
+        'name': 'GPT-4 0613',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    'groq/llama-3.1-8b-instant': {
-        'name': 'Llama 3.1 8B (Groq)',
-        'provider': 'Groq',
-        'api_key_env': 'GROQ_API_KEY',
-        'context_window': 128000
+    'openai/gpt-4-32k': {
+        'name': 'GPT-4 32k',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    'groq/mixtral-8x7b-32768': {
-        'name': 'Mixtral 8x7B (Groq)',
-        'provider': 'Groq',
-        'api_key_env': 'GROQ_API_KEY',
-        'context_window': 32768
+    'openai/gpt-4-32k-0314': {
+        'name': 'GPT-4 32k 0314',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
-    # Mistral Models
-    'mistral/mistral-large-latest': {
-        'name': 'Mistral Large',
-        'provider': 'Mistral AI',
-        'api_key_env': 'MISTRAL_API_KEY',
-        'context_window': 128000
-    },
-    'mistral/mistral-small-latest': {
-        'name': 'Mistral Small',
-        'provider': 'Mistral AI',
-        'api_key_env': 'MISTRAL_API_KEY',
-        'context_window': 32000
-    },
-    # DeepSeek Models
-    'deepseek/deepseek-chat': {
-        'name': 'DeepSeek Chat',
-        'provider': 'DeepSeek',
-        'api_key_env': 'DEEPSEEK_API_KEY',
-        'context_window': 64000
-    },
-    'deepseek/deepseek-reasoner': {
-        'name': 'DeepSeek Reasoner',
-        'provider': 'DeepSeek',
-        'api_key_env': 'DEEPSEEK_API_KEY',
-        'context_window': 64000
+    'openai/gpt-4-32k-0613': {
+        'name': 'GPT-4 32k 0613',
+        'provider': 'OpenAI',
+        'api_key_env': 'OPENAI_API_KEY',
     },
 }
 
@@ -264,9 +392,11 @@ def configure_dspy(model_id: str, api_key: str) -> tuple[Optional[object], Optio
 # Test Model Connection
 # =============================================================================
 
-def test_model_connection(model_id: str, api_key: str, test_message: str) -> tuple[Optional[str], Optional[str]]:
+def test_model_connection(model_id: str, api_key: str, test_message: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Tests the model connection by sending a message and receiving a response.
+    Returns the response text, the model identifier reported in the response JSON (if present),
+    and an optional error message.
     
     Args:
         model_id: The LiteLLM model ID
@@ -274,7 +404,7 @@ def test_model_connection(model_id: str, api_key: str, test_message: str) -> tup
         test_message: The message to send
         
     Returns:
-        tuple: (response_text, error_message)
+        tuple: (response_text, model_from_response, error_message)
     """
     try:
         # Set API key for the provider
@@ -290,18 +420,39 @@ def test_model_connection(model_id: str, api_key: str, test_message: str) -> tup
         )
 
         # Extract response text
-        response_text = response.choices[0].message.content
+        # Support both attribute-style and dict-style responses
+        try:
+            response_text = response.choices[0].message.content
+        except Exception:
+            # Fallbacks in case structure differs
+            try:
+                response_text = response['choices'][0]['message']['content']
+            except Exception:
+                response_text = str(response)
 
-        return response_text, None
+        # Try to extract the model identifier from the response JSON/object
+        model_from_response = None
+        try:
+            model_from_response = getattr(response, 'model', None)
+        except Exception:
+            model_from_response = None
+
+        if not model_from_response:
+            try:
+                model_from_response = response.get('model') if isinstance(response, dict) else None
+            except Exception:
+                model_from_response = None
+
+        return response_text, model_from_response, None
 
     except litellm.AuthenticationError:
-        return None, "Authentication failed. Please check your API key."
+        return None, None, "Authentication failed. Please check your API key."
     except litellm.RateLimitError:
-        return None, "Rate limit exceeded. Please wait and try again."
+        return None, None, "Rate limit exceeded. Please wait and try again."
     except litellm.APIConnectionError:
-        return None, "Connection error. Please check your internet connection."
+        return None, None, "Connection error. Please check your internet connection."
     except Exception as e:
-        return None, f"Error: {str(e)}"
+        return None, None, f"Error: {str(e)}"
 
 
 # =============================================================================
