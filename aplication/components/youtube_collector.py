@@ -132,7 +132,7 @@ def collectComments(videoId, apiKey, maxComments=100, progressCallback=None):
     except ImportError:
         return {
             'success': False,
-            'error': 'Biblioteca necessária faltando: google-api-python-client',
+            'error': 'Required library missing: google-api-python-client',
             'errorType': 'import'
         }
 
@@ -210,9 +210,12 @@ def collectComments(videoId, apiKey, maxComments=100, progressCallback=None):
                 if collectedCount >= maxComments:
                     break
 
-            # Update progress (handled elsewhere)
+            # Update progress after processing this batch of comments
             if progressCallback:
-                pass
+                try:
+                    progressCallback(f"{collectedCount:,} comments collected so far", collectedCount)
+                except Exception:
+                    pass
 
             # Check for next page
             nextPageToken = response.get('nextPageToken')
