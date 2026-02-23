@@ -161,6 +161,40 @@ with st.container(border=True):
         st.markdown("**Dataset Preview (first 5 rows):**")
         st.dataframe(dataset.head(5), use_container_width=True)
 
+        # Small download button for the preview dataset (respects configured name and format)
+        try:
+            buffer = BytesIO()
+            out_name = st.session_state.globalData.get('outputFileName') or st.session_state.globalData.get('originalFileName') or 'dataset'
+            out_format = (st.session_state.globalData.get('outputFormat') or 'csv').lower()
+
+            if out_format == 'csv':
+                dataset.to_csv(buffer, index=False)
+                mime = 'text/csv'
+            elif out_format == 'xlsx':
+                dataset.to_excel(buffer, index=False, engine='openpyxl')
+                mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            elif out_format == 'json':
+                buffer.write(dataset.to_json(orient='records', indent=2).encode('utf-8'))
+                mime = 'application/json'
+            elif out_format == 'parquet':
+                dataset.to_parquet(buffer, index=False)
+                mime = 'application/octet-stream'
+            else:
+                dataset.to_csv(buffer, index=False)
+                mime = 'text/csv'
+
+            data = buffer.getvalue()
+            base = out_name.rsplit('.', 1)[0]
+            st.download_button(
+                label="📥 Download Dataset",
+                data=data,
+                file_name=f"{base}.{out_format}",
+                mime=mime,
+                use_container_width=False
+            )
+        except Exception:
+            pass
+
         # Check if configuration is complete
         if text_column is None:
             st.warning("⚠️ Please select a text column in the Home page to enable classification.")

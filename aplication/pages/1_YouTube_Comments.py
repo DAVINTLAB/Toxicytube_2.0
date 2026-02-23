@@ -549,7 +549,7 @@ with st.container(border=True):
             videoStats = collectionResult['videoStats']
 
             # Save comments to file
-            progress_text.markdown(f"💾 Salvando comentários em {outputFormat.upper()}...")
+            progress_text.markdown(f"💾 Saving comments in {outputFormat.upper()}...")
 
             saveResult = saveCommentsToFile(comments, outputFilePath, outputFormat)
 
@@ -620,9 +620,9 @@ with st.container(border=True):
                 'error': error
             }
 
-        # Show final messages in progress area (plain text)
+        # Finalize progress bar (no verbose final message shown here)
         try:
-            progress_text.markdown('\n\n'.join(finalMessages))
+            progress_bar.progress(100)
         except Exception:
             pass
 
