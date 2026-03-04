@@ -105,8 +105,8 @@ def render_navigation(current_page):
         if current_page != 'home':
             st.switch_page("Home.py")
 
-    # Data Collect Section
-    st.sidebar.markdown("### Data Collect")
+    # Data Gathering Section
+    st.sidebar.markdown("### Data Gathering")
 
     if st.sidebar.button(
         "🎥 YouTube Comments",
